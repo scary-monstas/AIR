@@ -2,128 +2,179 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web BLE Radar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Precision Finding</title>
     <style>
-        body {
-            background-color: #000;
-            color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        :root {
+            --bg-color: #304349; /* Dark teal/gray from screenshot */
+            --bg-success: #1a6b2d; /* Apple green when close */
+            --text-main: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.6);
         }
 
-        /* Radar UI */
-        .radar-container {
-            position: relative;
-            width: 250px;
-            height: 250px;
-            margin-top: 40px;
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background-color 0.8s ease;
+        }
+
+        /* Top Header */
+        .header {
+            padding: 50px 20px 20px;
+        }
+        .finding-text {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .device-name {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        /* Center Stage (Arrow) */
+        .center-stage {
+            flex-grow: 1;
             display: flex;
             justify-content: center;
             align-items: center;
+            position: relative;
+        }
+        
+        .arrow-container {
+            width: 180px;
+            height: 180px;
+            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease;
+            opacity: 0.2; /* Dim until connected */
         }
 
-        .radar-cone {
-            width: 0;
-            height: 0;
-            border-left: 125px solid transparent;
-            border-right: 125px solid transparent;
-            border-top: 200px solid #00a8ff;
-            border-radius: 50%;
-            position: absolute;
-            top: 0;
-            transition: all 0.3s ease;
-        }
-
-        .distance-text {
-            position: absolute;
-            top: 60px;
-            font-size: 32px;
-            font-weight: bold;
-            color: white;
-            z-index: 10;
-        }
-
-        /* Details UI */
-        .details-container {
+        /* Apple-style rounded arrow SVG */
+        .arrow-svg {
             width: 100%;
-            max-width: 400px;
-            margin-top: 40px;
+            height: 100%;
+            fill: white;
+            filter: drop-shadow(0px 10px 20px rgba(0,0,0,0.2));
         }
 
-        .detail-row {
-            margin-bottom: 20px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 10px;
+        /* Bottom Info Panel */
+        .info-panel {
+            padding: 20px 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
         }
-
-        .label {
-            color: #888;
-            font-size: 14px;
+        
+        .distance-display {
+            font-size: 72px;
+            font-weight: 600;
+            letter-spacing: -2px;
+            line-height: 1;
             margin-bottom: 5px;
+            display: flex;
+            align-items: baseline;
+        }
+        
+        .unit {
+            font-size: 32px;
+            font-weight: 500;
+            margin-left: 8px;
+            color: var(--text-muted);
         }
 
-        .value {
-            font-size: 18px;
-            font-weight: bold;
+        .direction-text {
+            font-size: 28px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 30px;
         }
 
-        .highlight { color: #00a8ff; }
+        .direction-text strong {
+            color: white;
+            font-weight: 600;
+        }
 
-        button {
-            background-color: #00a8ff;
+        /* Connect Button (Replaces Apple's bottom buttons for web functionality) */
+        .connect-btn {
+            background-color: rgba(255, 255, 255, 0.15);
             color: white;
             border: none;
-            padding: 15px 30px;
+            padding: 18px;
             font-size: 18px;
+            font-weight: 600;
             border-radius: 30px;
-            cursor: pointer;
             width: 100%;
-            max-width: 400px;
-            margin-top: 20px;
-            font-weight: bold;
+            margin-bottom: 40px;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .connect-btn:active {
+            background-color: rgba(255, 255, 255, 0.3);
         }
 
-        button:active { background-color: #0080cc; }
+        /* Utility classes */
+        .hidden { display: none !important; }
+        .pulsing { animation: pulse 2s infinite; }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="radar-container">
-        <div class="radar-cone" id="radarVis"></div>
-        <div class="distance-text" id="distanceDisplay">-- m</div>
+    <div class="header">
+        <div class="finding-text">FINDING</div>
+        <h1 class="device-name" id="deviceNameUi">Unknown Device</h1>
     </div>
 
-    <div class="details-container">
-        <div class="detail-row">
-            <div class="label">Device name</div>
-            <div class="value" id="deviceName">Waiting...</div>
+    <div class="center-stage">
+        <div class="arrow-container" id="arrowBox">
+            <!-- Custom SVG Arrow mimicking Apple's thick, rounded design -->
+            <svg class="arrow-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50 15 L80 45 C83 48 83 52 80 55 C77 58 73 58 70 55 L57 42 L57 78 C57 82 54 85 50 85 C46 85 43 82 43 78 L43 42 L30 55 C27 58 23 58 20 55 C17 52 17 48 20 45 L50 15 Z" />
+            </svg>
         </div>
+    </div>
+
+    <div class="info-panel">
+        <div class="distance-display" id="distanceUi">
+            <span id="distNumber">--</span>
+            <span class="unit">ft</span>
+        </div>
+        <div class="direction-text" id="statusText">Tap connect to start</div>
         
-        <div class="detail-row">
-            <div class="label">Browser ID (MAC is hidden by browser)</div>
-            <div class="value" id="deviceId">--</div>
-        </div>
-
-        <div class="detail-row">
-            <div class="label">Signal Strength (RSSI)</div>
-            <div class="value highlight" id="rssiDisplay">-- dBm</div>
-        </div>
+        <button class="connect-btn" id="scanBtn">Connect to Tracker</button>
     </div>
 
-    <button id="scanBtn">Select Device to Track</button>
-
-<script>
+    <script>
         let bluetoothDevice;
-        let smoothedRssi = null; // Used to smooth out the bouncy signal
+        let smoothedRssi = null;
+        let previousDistance = null;
 
-        document.getElementById('scanBtn').addEventListener('click', async () => {
+        const scanBtn = document.getElementById('scanBtn');
+        const arrowBox = document.getElementById('arrowBox');
+        const distNumber = document.getElementById('distNumber');
+        const statusText = document.getElementById('statusText');
+        const deviceNameUi = document.getElementById('deviceNameUi');
+
+        scanBtn.addEventListener('click', async () => {
             if (!navigator.bluetooth) {
-                alert("❌ Web Bluetooth is DISABLED.");
+                alert("Web Bluetooth is not supported on this browser.");
                 return;
             }
 
@@ -133,64 +184,74 @@
                     optionalServices: ['generic_access']
                 });
 
-                document.getElementById('deviceName').textContent = bluetoothDevice.name || 'UNKNOWN DEVICE';
-                document.getElementById('deviceId').textContent = bluetoothDevice.id;
-                document.getElementById('scanBtn').textContent = "Tracking Live Data...";
+                // Update UI for Connection
+                deviceNameUi.textContent = bluetoothDevice.name || 'Bluetooth Tracker';
+                scanBtn.classList.add('hidden'); // Hide button once connected
+                arrowBox.style.opacity = "1";
+                arrowBox.classList.add('pulsing');
+                statusText.innerHTML = "Connecting...";
 
                 if (!bluetoothDevice.watchAdvertisements) {
-                    alert("watchAdvertisements not supported.");
+                    statusText.innerHTML = "Live tracking not supported.";
                     return;
                 }
 
                 bluetoothDevice.addEventListener('advertisementreceived', (event) => {
                     let rawRssi = event.rssi;
                     
-                    // 1. SMOOTHING FILTER
-                    // Bluetooth signals bounce wildly. This averages the new signal with the old signal.
+                    // 1. Math Filter to smooth the bouncy signal
                     if (smoothedRssi === null) {
                         smoothedRssi = rawRssi;
                     } else {
-                        // 15% new signal, 85% old signal (Keeps it stable)
                         smoothedRssi = (0.15 * rawRssi) + (0.85 * smoothedRssi);
                     }
 
-                    // Update UI with the exact raw signal for debugging
-                    document.getElementById('rssiDisplay').textContent = `${rawRssi} dBm (Smoothed: ${smoothedRssi.toFixed(1)})`;
-                    
-                    // 2. THE DISTANCE MATH
-                    // -69 is the average RSSI when a device is exactly 1 meter away.
+                    // 2. Calculate Distance in Meters, then convert to Feet
                     const rssiAtOneMeter = -69; 
+                    const envFactor = 2.5; 
+                    let ratio = (rssiAtOneMeter - smoothedRssi) / (10 * envFactor);
+                    let distanceMeters = Math.pow(10, ratio);
+                    let distanceFeet = distanceMeters * 3.28084;
                     
-                    // Environmental factor: 2 = open field, 3 = indoor room, 4 = heavy walls
-                    const environmentFactor = 2.5; 
+                    // Update Number UI
+                    distNumber.textContent = distanceFeet.toFixed(1);
+                    arrowBox.classList.remove('pulsing'); // Stop pulsing once we have data
 
-                    let ratio = (rssiAtOneMeter - smoothedRssi) / (10 * environmentFactor);
-                    let distance = Math.pow(10, ratio);
-                    
-                    // Update Distance UI
-                    document.getElementById('distanceDisplay').textContent = `${distance.toFixed(2)}m`;
-
-                    // 3. RADAR ANIMATION
-                    let scale = Math.max(0.2, Math.min(1.5, (100 + smoothedRssi) / 60));
-                    document.getElementById('radarVis').style.transform = `scale(${scale})`;
-                    
-                    if (distance < 1.0) {
-                        document.getElementById('radarVis').style.borderTopColor = "#2ecc71"; // Green (Under 1 meter)
-                    } else if (distance < 4.0) {
-                        document.getElementById('radarVis').style.borderTopColor = "#f1c40f"; // Yellow (Under 4 meters)
-                    } else {
-                        document.getElementById('radarVis').style.borderTopColor = "#e74c3c"; // Red (Far away)
+                    // 3. The "Hot/Cold" Game Logic (Since we don't have UWB angle)
+                    if (previousDistance !== null) {
+                        let diff = distanceFeet - previousDistance;
+                        
+                        if (distanceFeet < 3.0) {
+                            // VERY CLOSE (Under 3 feet)
+                            document.body.style.backgroundColor = "var(--bg-success)";
+                            arrowBox.style.transform = "rotate(0deg) scale(1.2)";
+                            statusText.innerHTML = "<strong>Right here</strong>";
+                        } 
+                        else if (diff < -0.3) {
+                            // GETTING CLOSER (Walk forward)
+                            document.body.style.backgroundColor = "var(--bg-color)";
+                            arrowBox.style.transform = "rotate(0deg)"; // Point UP
+                            statusText.innerHTML = "Getting <strong>closer</strong>";
+                        } 
+                        else if (diff > 0.3) {
+                            // GETTING FURTHER (Walk back)
+                            document.body.style.backgroundColor = "var(--bg-color)";
+                            arrowBox.style.transform = "rotate(180deg)"; // Point DOWN
+                            statusText.innerHTML = "Moving <strong>away</strong>";
+                        }
                     }
+                    
+                    previousDistance = distanceFeet;
                 });
 
                 await bluetoothDevice.watchAdvertisements();
+                statusText.innerHTML = "Walk around to find it";
 
             } catch (error) {
                 console.error("Bluetooth Error:", error);
                 if(error.name !== 'NotFoundError') {
                     alert("Error: " + error.message);
                 }
-                document.getElementById('scanBtn').textContent = "Select Device to Track";
             }
         });
     </script>

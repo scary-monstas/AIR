@@ -117,25 +117,31 @@
 
     <button id="scanBtn">Select Device to Track</button>
 
-    <script>
+<script>
         let bluetoothDevice;
 
         document.getElementById('scanBtn').addEventListener('click', async () => {
+            
+            // 1. Check if the browser completely blocks Bluetooth (Like Brave default or Safari)
+            if (!navigator.bluetooth) {
+                alert("❌ Web Bluetooth is DISABLED or NOT SUPPORTED in this browser.\n\nIf using Brave: Go to brave://settings/content/bluetoothDevices and allow sites to ask.\n\nNote: This will not work on iPhones/iPads due to Apple restrictions.");
+                return;
+            }
+
             try {
-                // 1. Open Browser Popup
+                // 2. Open Browser Popup
                 bluetoothDevice = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true
                 });
 
-                // 2. Update Basic Info
+                // 3. Update Basic Info
                 document.getElementById('deviceName').textContent = bluetoothDevice.name || 'UNKNOWN DEVICE';
                 document.getElementById('deviceId').textContent = bluetoothDevice.id;
                 document.getElementById('scanBtn').textContent = "Tracking...";
 
-                // 3. Try to start listening for signal strength (RSSI)
-                // Note: watchAdvertisements is experimental in browsers!
+                // 4. Try to start listening for signal strength (RSSI)
                 if (!bluetoothDevice.watchAdvertisements) {
-                    alert("Your browser does not support live signal tracking (watchAdvertisements). You will only see the name and ID.");
+                    alert("⚠️ Basic connection successful, but live distance tracking requires Experimental Web Features to be enabled.\n\nGo to brave://flags/#enable-experimental-web-platform-features and enable it.");
                     return;
                 }
 
@@ -144,16 +150,13 @@
                     document.getElementById('rssiDisplay').textContent = `${rssi} dBm`;
                     
                     // Calculate rough distance based on RSSI
-                    // Formula: 10 ^ ((TxPower - RSSI) / (10 * 2))
-                    let txPower = event.txPower || -59; // Default BLE txPower
+                    let txPower = event.txPower || -59; 
                     let ratio = (txPower - rssi) / (10 * 2);
                     let distance = Math.pow(10, ratio);
                     
-                    // Format to 2 decimal places
-                    let distanceFormatted = distance.toFixed(2);
-                    document.getElementById('distanceDisplay').textContent = `${distanceFormatted}m`;
+                    document.getElementById('distanceDisplay').textContent = `${distance.toFixed(2)}m`;
 
-                    // Animate the radar cone slightly based on signal strength
+                    // Animate the radar cone
                     let scale = Math.max(0.3, Math.min(1.2, (100 + rssi) / 50));
                     document.getElementById('radarVis').style.transform = `scale(${scale})`;
                 });
@@ -163,9 +166,10 @@
             } catch (error) {
                 console.error(error);
                 if(error.name === 'NotFoundError') {
-                    alert("You cancelled the pairing menu.");
+                    // User closed the popup without picking anything
+                    console.log("Pairing cancelled by user.");
                 } else {
-                    alert("Error: " + error.message + "\n\nMake sure Experimental Web Platform features are enabled in your browser.");
+                    alert("Error: " + error.message);
                 }
                 document.getElementById('scanBtn').textContent = "Select Device to Track";
             }

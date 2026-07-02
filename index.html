@@ -6,10 +6,11 @@
     <title>Precision Finding</title>
     <style>
         :root {
-            --bg-color: #304349; /* Dark teal/gray from screenshot */
-            --bg-success: #1a6b2d; /* Apple green when close */
+            --bg-color: #304349;
+            --bg-success: #1a6b2d;
             --text-main: #ffffff;
             --text-muted: rgba(255, 255, 255, 0.6);
+            --btn-bg: rgba(255, 255, 255, 0.15);
         }
 
         body {
@@ -22,111 +23,74 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: background-color 0.8s ease;
+            transition: background-color 0.4s ease; /* Faster color transition */
         }
 
         /* Top Header */
-        .header {
-            padding: 50px 20px 20px;
-        }
+        .header { padding: 50px 20px 20px; }
         .finding-text {
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 4px;
+            font-size: 12px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--text-muted); margin-bottom: 4px;
         }
-        .device-name {
-            font-size: 28px;
-            font-weight: 700;
-            margin: 0;
-            letter-spacing: -0.5px;
-        }
+        .device-name { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
 
         /* Center Stage (Arrow) */
         .center-stage {
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
+            flex-grow: 1; display: flex; justify-content: center;
+            align-items: center; position: relative;
         }
         
         .arrow-container {
-            width: 180px;
-            height: 180px;
-            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease;
-            opacity: 0.2; /* Dim until connected */
+            width: 180px; height: 180px;
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;
+            opacity: 0.2;
         }
 
-        /* Apple-style rounded arrow SVG */
         .arrow-svg {
-            width: 100%;
-            height: 100%;
-            fill: white;
+            width: 100%; height: 100%; fill: white;
             filter: drop-shadow(0px 10px 20px rgba(0,0,0,0.2));
         }
 
         /* Bottom Info Panel */
-        .info-panel {
-            padding: 20px 30px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-        }
+        .info-panel { padding: 20px 30px 40px; }
         
         .distance-display {
-            font-size: 72px;
-            font-weight: 600;
-            letter-spacing: -2px;
-            line-height: 1;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: baseline;
+            font-size: 72px; font-weight: 600; letter-spacing: -2px;
+            line-height: 1; margin-bottom: 5px; display: flex; align-items: baseline;
         }
         
-        .unit {
-            font-size: 32px;
-            font-weight: 500;
-            margin-left: 8px;
-            color: var(--text-muted);
-        }
+        .unit { font-size: 32px; font-weight: 500; margin-left: 8px; color: var(--text-muted); }
+        .direction-text { font-size: 28px; font-weight: 500; color: var(--text-muted); margin-bottom: 30px; }
+        .direction-text strong { color: white; font-weight: 600; }
 
-        .direction-text {
-            font-size: 28px;
-            font-weight: 500;
-            color: var(--text-muted);
-            margin-bottom: 30px;
-        }
-
-        .direction-text strong {
-            color: white;
-            font-weight: 600;
-        }
-
-        /* Connect Button (Replaces Apple's bottom buttons for web functionality) */
+        /* Connect Button */
         .connect-btn {
-            background-color: rgba(255, 255, 255, 0.15);
-            color: white;
-            border: none;
-            padding: 18px;
-            font-size: 18px;
-            font-weight: 600;
-            border-radius: 30px;
-            width: 100%;
-            margin-bottom: 40px;
-            backdrop-filter: blur(10px);
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .connect-btn:active {
-            background-color: rgba(255, 255, 255, 0.3);
+            background-color: var(--btn-bg); color: white; border: none;
+            padding: 18px; font-size: 18px; font-weight: 600; border-radius: 30px;
+            width: 100%; backdrop-filter: blur(10px); cursor: pointer;
         }
 
-        /* Utility classes */
+        /* Bottom Apple Controls (Hidden until connected) */
+        .bottom-controls {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .icon-btn {
+            width: 60px; height: 60px; border-radius: 50%;
+            background-color: var(--btn-bg); border: none;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; backdrop-filter: blur(10px);
+        }
+        .icon-btn svg { fill: white; width: 24px; height: 24px; }
+        .icon-btn:active { background-color: rgba(255, 255, 255, 0.3); }
+
         .hidden { display: none !important; }
-        .pulsing { animation: pulse 2s infinite; }
+        .pulsing { animation: pulse 1.5s infinite; }
 
         @keyframes pulse {
             0% { transform: scale(0.95); opacity: 0.5; }
@@ -144,7 +108,6 @@
 
     <div class="center-stage">
         <div class="arrow-container" id="arrowBox">
-            <!-- Custom SVG Arrow mimicking Apple's thick, rounded design -->
             <svg class="arrow-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <path d="M50 15 L80 45 C83 48 83 52 80 55 C77 58 73 58 70 55 L57 42 L57 78 C57 82 54 85 50 85 C46 85 43 82 43 78 L43 42 L30 55 C27 58 23 58 20 55 C17 52 17 48 20 45 L50 15 Z" />
             </svg>
@@ -159,6 +122,21 @@
         <div class="direction-text" id="statusText">Tap connect to start</div>
         
         <button class="connect-btn" id="scanBtn">Connect to Tracker</button>
+
+        <div class="bottom-controls" id="controlBar">
+            <!-- Close Button -->
+            <button class="icon-btn" onclick="window.location.reload()">
+                <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+            <!-- Flashlight Button -->
+            <button class="icon-btn" id="flashBtn">
+                <svg viewBox="0 0 24 24"><path d="M9 21h6v-10h-6v10zm3-19c-3.86 0-7 3.14-7 7 0 2.38 1.19 4.47 3 5.74v1.26h8v-1.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
+            </button>
+            <!-- Sound Button -->
+            <button class="icon-btn" id="soundBtn">
+                <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+            </button>
+        </div>
     </div>
 
     <script>
@@ -167,10 +145,20 @@
         let previousDistance = null;
 
         const scanBtn = document.getElementById('scanBtn');
+        const controlBar = document.getElementById('controlBar');
         const arrowBox = document.getElementById('arrowBox');
         const distNumber = document.getElementById('distNumber');
         const statusText = document.getElementById('statusText');
         const deviceNameUi = document.getElementById('deviceNameUi');
+
+        // Fake Buttons Logic
+        document.getElementById('flashBtn').addEventListener('click', () => {
+            alert("Web browsers cannot turn on your phone's flashlight directly from a webpage for security reasons.");
+        });
+
+        document.getElementById('soundBtn').addEventListener('click', () => {
+            alert("SECURITY LOCK: You cannot make an AirTag play a sound from a web browser. Apple encrypts AirTags so only the official 'Find My' app can trigger the alarm.");
+        });
 
         scanBtn.addEventListener('click', async () => {
             if (!navigator.bluetooth) {
@@ -184,9 +172,10 @@
                     optionalServices: ['generic_access']
                 });
 
-                // Update UI for Connection
+                // UI Updates
                 deviceNameUi.textContent = bluetoothDevice.name || 'Bluetooth Tracker';
-                scanBtn.classList.add('hidden'); // Hide button once connected
+                scanBtn.style.display = 'none'; 
+                controlBar.style.display = 'flex'; // Show Apple bottom bar
                 arrowBox.style.opacity = "1";
                 arrowBox.classList.add('pulsing');
                 statusText.innerHTML = "Connecting...";
@@ -199,44 +188,45 @@
                 bluetoothDevice.addEventListener('advertisementreceived', (event) => {
                     let rawRssi = event.rssi;
                     
-                    // 1. Math Filter to smooth the bouncy signal
+                    // FASTER MATH FILTER (0.4 instead of 0.15 makes it react instantly)
                     if (smoothedRssi === null) {
                         smoothedRssi = rawRssi;
                     } else {
-                        smoothedRssi = (0.15 * rawRssi) + (0.85 * smoothedRssi);
+                        smoothedRssi = (0.4 * rawRssi) + (0.6 * smoothedRssi);
                     }
 
-                    // 2. Calculate Distance in Meters, then convert to Feet
+                    // Calculate Distance
                     const rssiAtOneMeter = -69; 
                     const envFactor = 2.5; 
                     let ratio = (rssiAtOneMeter - smoothedRssi) / (10 * envFactor);
                     let distanceMeters = Math.pow(10, ratio);
                     let distanceFeet = distanceMeters * 3.28084;
                     
-                    // Update Number UI
                     distNumber.textContent = distanceFeet.toFixed(1);
-                    arrowBox.classList.remove('pulsing'); // Stop pulsing once we have data
+                    arrowBox.classList.remove('pulsing'); 
 
-                    // 3. The "Hot/Cold" Game Logic (Since we don't have UWB angle)
+                    // Direction Logic & Haptics
                     if (previousDistance !== null) {
                         let diff = distanceFeet - previousDistance;
                         
                         if (distanceFeet < 3.0) {
-                            // VERY CLOSE (Under 3 feet)
+                            // VERY CLOSE (Green Zone)
                             document.body.style.backgroundColor = "var(--bg-success)";
                             arrowBox.style.transform = "rotate(0deg) scale(1.2)";
                             statusText.innerHTML = "<strong>Right here</strong>";
+                            if (navigator.vibrate) navigator.vibrate([50, 100, 50]); // Double tick
                         } 
-                        else if (diff < -0.3) {
-                            // GETTING CLOSER (Walk forward)
+                        else if (diff < -0.2) {
+                            // GETTING CLOSER (Arrow UP)
                             document.body.style.backgroundColor = "var(--bg-color)";
-                            arrowBox.style.transform = "rotate(0deg)"; // Point UP
+                            arrowBox.style.transform = "rotate(0deg)"; 
                             statusText.innerHTML = "Getting <strong>closer</strong>";
+                            if (navigator.vibrate) navigator.vibrate(20); // Single tick
                         } 
-                        else if (diff > 0.3) {
-                            // GETTING FURTHER (Walk back)
+                        else if (diff > 0.2) {
+                            // MOVING AWAY (Arrow DOWN)
                             document.body.style.backgroundColor = "var(--bg-color)";
-                            arrowBox.style.transform = "rotate(180deg)"; // Point DOWN
+                            arrowBox.style.transform = "rotate(180deg)"; 
                             statusText.innerHTML = "Moving <strong>away</strong>";
                         }
                     }
@@ -249,9 +239,7 @@
 
             } catch (error) {
                 console.error("Bluetooth Error:", error);
-                if(error.name !== 'NotFoundError') {
-                    alert("Error: " + error.message);
-                }
+                if(error.name !== 'NotFoundError') alert("Error: " + error.message);
             }
         });
     </script>

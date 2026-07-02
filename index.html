@@ -180,5 +180,19 @@
                         document.getElementById('radarVis').style.borderTopColor = "#f1c40f"; // Yellow (Under 4 meters)
                     } else {
                         document.getElementById('radarVis').style.borderTopColor = "#e74c3c"; // Red (Far away)
+                    }
+                });
+
+                await bluetoothDevice.watchAdvertisements();
+
+            } catch (error) {
+                console.error("Bluetooth Error:", error);
+                if(error.name !== 'NotFoundError') {
+                    alert("Error: " + error.message);
+                }
+                document.getElementById('scanBtn').textContent = "Select Device to Track";
+            }
+        });
+    </script>
 </body>
 </html>

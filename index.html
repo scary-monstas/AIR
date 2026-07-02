@@ -119,61 +119,66 @@
 
 <script>
         let bluetoothDevice;
+        let smoothedRssi = null; // Used to smooth out the bouncy signal
 
         document.getElementById('scanBtn').addEventListener('click', async () => {
-            
-            // 1. Check if the browser completely blocks Bluetooth (Like Brave default or Safari)
             if (!navigator.bluetooth) {
-                alert("❌ Web Bluetooth is DISABLED or NOT SUPPORTED in this browser.\n\nIf using Brave: Go to brave://settings/content/bluetoothDevices and allow sites to ask.\n\nNote: This will not work on iPhones/iPads due to Apple restrictions.");
+                alert("❌ Web Bluetooth is DISABLED.");
                 return;
             }
 
             try {
-                // 2. Open Browser Popup
                 bluetoothDevice = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true
+                    acceptAllDevices: true,
+                    optionalServices: ['generic_access']
                 });
 
-                // 3. Update Basic Info
                 document.getElementById('deviceName').textContent = bluetoothDevice.name || 'UNKNOWN DEVICE';
                 document.getElementById('deviceId').textContent = bluetoothDevice.id;
-                document.getElementById('scanBtn').textContent = "Tracking...";
+                document.getElementById('scanBtn').textContent = "Tracking Live Data...";
 
-                // 4. Try to start listening for signal strength (RSSI)
                 if (!bluetoothDevice.watchAdvertisements) {
-                    alert("⚠️ Basic connection successful, but live distance tracking requires Experimental Web Features to be enabled.\n\nGo to brave://flags/#enable-experimental-web-platform-features and enable it.");
+                    alert("watchAdvertisements not supported.");
                     return;
                 }
 
                 bluetoothDevice.addEventListener('advertisementreceived', (event) => {
-                    let rssi = event.rssi;
-                    document.getElementById('rssiDisplay').textContent = `${rssi} dBm`;
+                    let rawRssi = event.rssi;
                     
-                    // Calculate rough distance based on RSSI
-                    let txPower = event.txPower || -59; 
-                    let ratio = (txPower - rssi) / (10 * 2);
+                    // 1. SMOOTHING FILTER
+                    // Bluetooth signals bounce wildly. This averages the new signal with the old signal.
+                    if (smoothedRssi === null) {
+                        smoothedRssi = rawRssi;
+                    } else {
+                        // 15% new signal, 85% old signal (Keeps it stable)
+                        smoothedRssi = (0.15 * rawRssi) + (0.85 * smoothedRssi);
+                    }
+
+                    // Update UI with the exact raw signal for debugging
+                    document.getElementById('rssiDisplay').textContent = `${rawRssi} dBm (Smoothed: ${smoothedRssi.toFixed(1)})`;
+                    
+                    // 2. THE DISTANCE MATH
+                    // -69 is the average RSSI when a device is exactly 1 meter away.
+                    const rssiAtOneMeter = -69; 
+                    
+                    // Environmental factor: 2 = open field, 3 = indoor room, 4 = heavy walls
+                    const environmentFactor = 2.5; 
+
+                    let ratio = (rssiAtOneMeter - smoothedRssi) / (10 * environmentFactor);
                     let distance = Math.pow(10, ratio);
                     
+                    // Update Distance UI
                     document.getElementById('distanceDisplay').textContent = `${distance.toFixed(2)}m`;
 
-                    // Animate the radar cone
-                    let scale = Math.max(0.3, Math.min(1.2, (100 + rssi) / 50));
+                    // 3. RADAR ANIMATION
+                    let scale = Math.max(0.2, Math.min(1.5, (100 + smoothedRssi) / 60));
                     document.getElementById('radarVis').style.transform = `scale(${scale})`;
-                });
-
-                await bluetoothDevice.watchAdvertisements();
-
-            } catch (error) {
-                console.error(error);
-                if(error.name === 'NotFoundError') {
-                    // User closed the popup without picking anything
-                    console.log("Pairing cancelled by user.");
-                } else {
-                    alert("Error: " + error.message);
-                }
-                document.getElementById('scanBtn').textContent = "Select Device to Track";
-            }
-        });
-    </script>
+                    
+                    if (distance < 1.0) {
+                        document.getElementById('radarVis').style.borderTopColor = "#2ecc71"; // Green (Under 1 meter)
+                    } else if (distance < 4.0) {
+                        document.getElementById('radarVis').style.borderTopColor = "#f1c40f"; // Yellow (Under 4 meters)
+                    } else {
+                        document.getElementById('radarVis').style.borderTopColor = "#e74c3c"; // Red (Far away)
 </body>
 </html>
